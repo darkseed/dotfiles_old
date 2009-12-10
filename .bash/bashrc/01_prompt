@@ -1,0 +1,51 @@
+#export PS1="${COLOR_GREEN}[\t ${COLOR_LIGHT_GREEN}\u@\h${COLOR_LIGHT_GREEN}]: \W ($?)#${COLOR_NC} "
+#umask 022
+
+PROMPT_DIRTRIM=6
+
+# Assure that debian_chroot is set
+if [ -z "$debian_chroot" ] && [ -f /etc/debian_chroot ]; then
+    debian_chroot=$(cat /etc/debian_chroot)
+fi
+
+set_title()
+{
+	echo "\[\033]0;\]$*\[\007\]"
+}
+
+set_ps()
+{
+    debian_chroot_str="${debian_chroot:+(${COLOR_RED}$debian_chroot${COLOR_NC})}"
+	case $TERM in
+		xterm*|rxvt*)
+			TITLEBAR=$(set_title ${1:-"${debian_chroot:+($debian_chroot)}\u@\h:\w"})
+			;;
+		*)
+			TITLEBAR=""
+			;;
+	esac
+	UPART="";
+        case $USER in
+         root) UPART="${COLOR_RED}\u@";;
+         admin) UPART="${COLOR_RED}\u@";;
+         *) UPART="${COLOR_YELLOW}\u@";;
+        esac
+	PS="\[\$(__vcs_dir)\]
+[${COLOR_YELLOW}\A ($?) $UPART${COLOR_CYAN}\h${debian_chroot_str}:${COLOR_CYAN}\w${COLOR_NC}]
+\$ "
+#\$>$NC "
+	PS1=${PS1:+"$TITLEBAR$PS"}
+}
+
+# ${COLOR_YELLOW}#\# !\! [\j].....................................:\d \t:.${COLOR_NC}
+set_ps
+alias title=set_ps
+
+PS2=${PS2:+"${COLOR_CYAN}>${COLOR_LIGHT_CYAN}>${COLOR_NC} "};
+
+# thanks to rocky@
+export PS4='(${BASH_SOURCE}:${LINENO}): ${FUNCNAME[0]}\n'
+
+# clock on the prompt - nice but annoied me
+#PROMPT_COMMAND='echo -ne "[\033[32m`date +%H:%M`\033[0m] "'
+

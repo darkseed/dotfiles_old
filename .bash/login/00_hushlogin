@@ -1,0 +1,2 @@
+# Lets make it ignore motd for future logins
+[ ! -f ~/.hushlogin ] && touch ~/.hushlogin

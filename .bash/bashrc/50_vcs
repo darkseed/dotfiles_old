@@ -1,0 +1,39 @@
+#emacs: -*- mode: shell-script; c-basic-offset: 2; tab-width: 2; indent-tabs-mode: nil -*-
+#ex: set sts=4 ts=4 sw=4 noet:
+# git VCS information into the prompt
+__vcs_dir() {
+   local vcs base_dir sub_dir ref
+   sub_dir() {
+     local sub_dir
+     sub_dir=$(readlink -f "${PWD}")
+     sub_dir=${sub_dir#$1}
+     echo ${sub_dir#/}
+   }
+   git_dir() {
+     base_dir=$(git rev-parse --show-cdup 2>/dev/null) || return 1
+         if [ -z "$base_dir" ]; then base_dir="."; fi
+     base_dir=$(readlink -f "$base_dir")
+     sub_dir=$(git rev-parse --show-prefix)
+     sub_dir=${sub_dir%/}
+     ref=$(git symbolic-ref -q HEAD || git name-rev --name-only HEAD 2>/dev/null)
+     ref=${ref#refs/heads/}
+     vcs="git"
+   }
+   svn_dir() {
+     [ -d ".svn" ] || return 1
+     base_dir="."
+     while [ -d "$base_dir/../.svn" ]; do base_dir="$base_dir/.."; done
+     base_dir=$(readlink -f "$base_dir")
+     sub_dir=$(sub_dir "${base_dir}")
+     ref=$(svn info "$base_dir" | awk '/^URL/ { sub(".*/","",$0); r=$0 } /^Revision/ { sub("[^0-9]*","",$0); print r":"$0 }')
+     vcs="svn"
+   }
+
+   git_dir || svn_dir
+
+   [ "$vcs" ] && echo -e "\033[01;33m($vcs)\033[00m${base_dir/$HOME/~}:${sub_dir}\033[01;33m[$ref]\033[00m\\n" \
+   || echo ""
+ }
+
+# PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[$(__vcs_dir)\]\[\033[00m\]\$ '
+

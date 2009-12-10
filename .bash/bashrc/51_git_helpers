@@ -1,0 +1,82 @@
+#emacs: -*- mode: shell-script; c-basic-offset: 4; tab-width: 4; indent-tabs-mode: nil -*-
+#ex: set sts=4 ts=4 sw=4 noet:
+
+git_ssh() {
+    # ssh into a remote which has ssh as transport
+    r=$1
+    shift
+    ssh_params=$*
+
+    if [ -z $r ]; then
+        # take the first one
+        r=$(git remote | head)
+    fi
+    rp=( $(git remote show $r 2>/dev/null | awk '/URL:/{print $2;}'\
+           | sed -e 's,\([^:]*\)://\([^/]*\)/\(.*\),\1 \2 \3,g') )
+    debug "Remote $r, remote params: ${rp[*]} " \
+        "ssh params: $ssh_params"
+    if [ -z "${rp[*]}" ]; then
+        error "Failed to acquire parameters for remote $r"
+        return 1
+    fi
+    if [ "${#rp[*]}" != "3" ]; then
+        error "Failed to parse parameters of remote: ${rp[*]}"
+        return 1
+    fi
+    if [ ${rp[0]} != "ssh" ]; then
+        error "Remote $r transport is not ssh, it is " ${rp[0]}
+        return 1
+    fi
+
+    ssh -t $ssh_params ${rp[1]} "cd ${rp[2]}; \$SHELL"
+}
+
+
+git-diff-branches() {
+    # ugly but working implementation to get a nice summary on
+    # differences between branches, including detected cherry picks
+    #
+    # it is not yet tested extensively -- so expect bugs etc
+    if [ $# -ne 2 ]; then
+        echo "ERROR: provide two treeish"
+        return 1
+    fi
+    b1=$1
+    b2=$2
+    # common base
+    base=`git merge-base $b1 $b2`
+    # get commits
+    tb=`mktemp /tmp/git-diff-branchesXXXXXX`
+    t1=${tb}-1; t1s=${t1}s
+    t2=${tb}-2; t2s=${t2}s
+    ts=${tb}-spec
+    tu=${tb}-uniq
+    git rev-list --no-merges --pretty=format:"%h {$b1} [%ci]|%ad %an <%ae>:%s" $base..$b1 \
+        | sort | grep -v '^commit' >| $t1
+    git rev-list --no-merges --pretty=format:"%h {$b2} [%ci]|%ad %an <%ae>:%s" $base..$b2 \
+        | sort | grep -v '^commit' >| $t2
+    nall=$(cat $t1 $t2 | wc -l)
+    cat <(sed -e 's/^.*|//g' $t1) <(sed -e 's/^.*|//g' $t2) | sort | uniq >| $tu
+    nuniq=$(cat $tu | wc -l )
+    cat <(sed -e 's/^.*|//g' $t1) <(sed -e 's/^.*|//g' $t2) | sort | uniq -u >| $ts
+    nspec=$(cat $ts | wc -l )
+    #echo -e "D: unique lines:\n" $unique_lines
+    cat $ts | while read l; do
+        grep "|$l\$" $t1 >> $t1s
+        grep "|$l\$" $t2 >> $t2s
+    done
+    echo "$nall all, $nuniq uniq, $nspec specific commits"
+    echo " `cat $t1s | wc -l` commits only in $b1:"; sed -e 's/^/  /g' -e 's/\[.*\]|/|/g' $t1s
+    echo " `cat $t2s | wc -l` commits only in $b2:"; sed -e 's/^/  /g' -e 's/\[.*\]|/|/g' $t2s
+    ncherries=$(($nuniq - $nspec))
+    echo " $ncherries cherry picks:"
+    grep -v -f $ts $tu | while read chp; do
+        chpt=$(grep -h -e "$chp" $t1 $t2 | sed -e 's/\(.*\) \(\[.*\]\)|.*/\2 \1/g' | sort \
+            | sed -e 's/^\[.*\] //' | tr '\n' '>' \
+            | sed -e 's/>$//g' -e 's/>/ --> /')
+        echo -e "  $chpt:\n    $chp"
+            #sed -e 's/ | head -1
+        #echo " $ts1 $ts2 $cp"
+    done
+    rm -f $t1 $t2 $t1s $t2s $tb $tu $ts
+}

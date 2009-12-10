@@ -1,0 +1,5 @@
+BASH_DOTDIR=$HOME/.bash
+BASH_BASEDIR=$BASH_DOTDIR/base
+
+source $BASH_BASEDIR/logging
+source $BASH_BASEDIR/sourcedir
