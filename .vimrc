@@ -1,9 +1,43 @@
 set nocompatible " Must be the first line
 filetype plugin indent on
 
-set ruler
+set backspace=indent,eol,start
 
+set nobackup
+set nowritebackup
+set ruler
+set history=50
+set showcmd
+set incsearch
+
+" Numbers
+set number
+set numberwidth=5
+
+" Color scheme
 colorscheme softblue
+
+" Snippets are activated by Shift+Tab
+let g:snippetsEmu_key = "<S-Tab>"
+
+" Tab completion options
+" (only complete to the longest unambiguous match, and show a menu)
+set completeopt=longest,menu
+set wildmode=list:longest,list:full
+
+" Maps autocomplete to tab
+imap <Tab> <C-N>
+
+if has("folding")
+	set foldenable
+	set foldmethod=syntax
+	set foldlevel=2
+	set foldnestmax=2
+	set foldtext=strpart(getline(v:foldstart),0,50).'\ ...\ '.substitute(getline(v:foldend),'^[\ #]*','','g').'\ '
+			   
+	" automatically open folds at the starting cursor position
+	" autocmd BufReadPost .foldo!
+endif
 
 " vimrc file for following the coding standards specified in PEP 7 & 8.
 "
@@ -22,7 +56,12 @@ colorscheme softblue
 " Only basic settings needed to enforce the style guidelines are set.
 " Some suggested options are listed but commented out at the end of this file.
 
-set grepprg=ack-grep\ -a
+if executable("ack")
+	set grepprg=ack\ -H\ --nogroup
+elseif executable("ack-grep")
+	" ack is called 'ack-grep' in debian
+	set grepprg=ack-grep\ -H\ --nogroup
+endif
 
 
 " Number of spaces to use for an indent.
@@ -90,7 +129,12 @@ au BufNewFile *.py,*.pyw,*.c,*.h set fileformat=unix
 
 " For full syntax highlighting:
 "let python_highlight_all=1
-syntax on
+" Switch syntax highlighting on, when the terminal has colors
+" Also switch on highlighting the last used search pattern.
+if (&t_Co > 2 || has("gui_running")) && !exists("syntax_on")
+	syntax on
+	set hlsearch
+endif
 
 set tabstop=4
 set shiftwidth=4
