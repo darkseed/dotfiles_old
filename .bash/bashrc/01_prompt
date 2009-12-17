@@ -31,10 +31,10 @@ set_ps()
          *) UPART="${COLOR_YELLOW}\u@";;
         esac
 	PS="\[\$(__vcs_dir)\]
-[${COLOR_YELLOW}\A ($?) $UPART${COLOR_CYAN}\h${debian_chroot_str}:${COLOR_CYAN}\w${COLOR_NC}]
-\$ "
+[${COLOR_YELLOW}\A ($?) $UPART${COLOR_CYAN}\h${debian_chroot_str}:${COLOR_CYAN}\w${COLOR_NC}]"
+PSX='\n\$ '
 #\$>$NC "
-	PS1=${PS1:+"$TITLEBAR$PS"}
+	PS1=${PS1:+"$TITLEBAR$PS$PSX"}
 }
 
 # ${COLOR_YELLOW}#\# !\! [\j].....................................:\d \t:.${COLOR_NC}
