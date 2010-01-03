@@ -27,7 +27,6 @@ set_ps()
 	UPART="";
         case $USER in
          root) UPART="${COLOR_RED}\u@";;
-         admin) UPART="${COLOR_RED}\u@";;
          *) UPART="${COLOR_YELLOW}\u@";;
         esac
 	PS="\[\$(__vcs_dir)\]
